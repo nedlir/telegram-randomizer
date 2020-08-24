@@ -1,0 +1,7 @@
+ __pycache__/
+ex/
+.env
+profile.jpg
+tempCodeRunnerFile.py
+test.py
+*.pyc

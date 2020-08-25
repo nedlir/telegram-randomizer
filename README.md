@@ -14,6 +14,17 @@ User description is randomly picked between a general user description, i.e. *"2
 
 Finally, a unique AI automated user photo is generated and scraped from the site [this person doesn't exist](https://thispersondoesnotexist.com) and uploaded to user profile.
 
+In case you would like to distinct the gender of the AI photo, a usage of [generated API](https://generated.photos/) is also supported. Kindly note that free use is limited to 50 monthly calls.
+
+Randomizing the profile is as easy as typing:
+            
+    from randomizer import change_data
+
+
+    change_data(API_ID, API_HASH, False)
+            
+
+For a full example please refer to [example.py](example.py).
 
 ## Requirements :key:
 
@@ -21,7 +32,7 @@ The script was written with as little as necessary dependecies in mind.
 
 To install the required packages, pip install the [requirements.txt](requirements.txt) file.
 
-APIs used in the script does not require registration except for the [telegram api](https://core.telegram.org/api/obtaining_api_id/).
+APIs used in the script does not require registration except for the [telegram api](https://core.telegram.org/api/obtaining_api_id/) and the [generated API](https://generated.photos/) (not compulsary).
 
 
 ## License 

@@ -1,14 +1,21 @@
 import json
 import random
+import os
 
 from string import ascii_lowercase
 
 import requests
 
+from dotenv import load_dotenv
 from telethon.sync import TelegramClient
 from telethon.tl.functions.account import UpdateUsernameRequest, UpdateProfileRequest
 from telethon.tl.functions.photos import DeletePhotosRequest, UploadProfilePhotoRequest
 
+
+load_dotenv()
+
+### API Keys ###
+GENERATED_API_KEY = os.getenv('GENERATED_API_KEY')
 
 ### API and Scraping URLs ###
 FAKE_DATA_URL = r'https://randomuser.me/api/?format=json'
@@ -16,6 +23,7 @@ KANYE_QUOTE_URL = r'https://api.kanye.rest/'
 BREAKINGBAD_QUOTE_URL = r'https://breaking-bad-quotes.herokuapp.com/v1/quotes'
 GENERAL_QUOTE_URL = r'https://favqs.com/api/qotd'
 FAKE_IMAGE_URL = r'https://thispersondoesnotexist.com/image'
+GENERATED_IMAGE_URL = f'https://api.generated.photos/api/v1/faces?api_key={GENERATED_API_KEY}'
 
 
 def get_data():
@@ -28,28 +36,19 @@ def get_data():
             return fake_data
     except:
         print('Error! Failed fetching fake user data.')
+        quit()
 
 
-def get_first_name(data):
-    first_name = data.get('name').get('first')
+def get_name(data, name_part: str):
+    # returns first/last name
+    name = data.get('name').get(name_part)
     min_len = 3
-    if len(first_name) < min_len \
-            or not first_name.isalnum() \
-            or not first_name:
+    if len(name) < min_len \
+            or not name.isalnum() \
+            or not name:
         new_data = get_data()
-        first_name = get_first_name(new_data)
-    return first_name
-
-
-def get_last_name(data):
-    last_name = data.get('name').get('last')
-    min_len = 3
-    if len(last_name) < min_len \
-            or not last_name.isalnum() \
-            or not last_name:
-        new_data = get_data()
-        last_name = get_last_name(new_data)
-    return last_name
+        name = get_name(new_data, name_part)
+    return name
 
 
 def get_username(data):
@@ -133,18 +132,43 @@ def get_description(data):
     return description
 
 
-def get_photo():
+def get_photo(url):
     print('Fetching AI generated human photo...')
     try:
-        with requests.get(FAKE_IMAGE_URL) as response:
+        with requests.get(url) as response:
             try:
+                print('Saving AI generated human photo to local folder...')
                 with open('profile.jpg', 'wb') as f:
                     f.write(response.content)
                     print('Successfully saved AI photo on local folder!')
             except:
                 print('Error! Failed to save profile picture.')
+                quit()
     except:
         print('Error! Failed to retrieve profile picture from url.')
+        quit()
+
+
+def get_genderized_photo_url(data):
+    try:
+        print('Connecting to genderized AI database...')
+        with requests.get(GENERATED_IMAGE_URL) as response:
+            source = response.json()
+            photos = source.get('faces')
+    except:
+        print('Error! Failed to retrieve genderized data.')
+
+    print('Matching AI photo gender with fetched fake data...')
+    index = 0
+    data_gender = data.get('gender')
+    photos_gender = photos[index].get('meta').get('gender')[0]
+    while data_gender != photos_gender:
+        index = index + 1
+        photos_gender = photos[index].get('meta').get('gender')[0]
+    print('Successfully matched profile photo to gender.')
+    # after the gender photo is matched to data
+    # save gender url to highest avaliable quality (512 X 512)
+    gender_url = photos[index].get('urls')[-1].get('512')
 
 
 def set_username(data, client):
@@ -162,8 +186,8 @@ def set_profile(data, client):
     print('Setting new profile data...')
     try:
         profile = client(UpdateProfileRequest(
-            first_name=get_first_name(data),
-            last_name=get_last_name(data),
+            first_name=get_name(data, 'first'),
+            last_name=get_name(data, 'last'),
             about=get_description(data)
         ))
         print('Successfully updated profile data!')
@@ -183,9 +207,14 @@ def set_photo(client):
         print('Error! Failed to changed photo!')
 
 
-def change_data(api_id, api_hash):
+def change_data(api_id: str, api_hash: str, gender: bool):
     data = get_data()
-    get_photo()
+    if gender:
+        gender_url = get_genderized_photo_url(data)
+        get_photo(gender_url)
+    else:
+        get_photo(FAKE_IMAGE_URL)
+
     try:
         print('Establishing connection...')
         with TelegramClient('', api_id, api_hash) as client:
